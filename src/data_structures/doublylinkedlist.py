@@ -1,145 +1,91 @@
-from dataclasses import dataclass
-from typing import Optional
-
 # =========================
-# NODE DOUBLY LINKED LIST
+# NODE (DOUBLE LINKED LIST)
 # =========================
 
-@dataclass
-class Node:
-    kode_mk: str
-    nama_mk: str
-    sks: int
-    grade: str
-    prev: Optional['Node'] = None
-    next: Optional['Node'] = None
+class DLLNode:
+    """Node Double Linked List"""
+    def __init__(self, mk, sks, grade, semester):
+        self.mk = mk
+        self.sks = sks
+        self.grade = grade
+        self.semester = semester
 
+        self.prev = None
+        self.next = None
 
 # =========================
-# DOUBLY LINKED LIST
+# ==Transkrip Nilai (DLL)==
 # =========================
 
-class DoublyLinkedList:
-
+class TranskripNilai:
+    """Double Linked List menyimpan riwayat nilai per semester."""
     def __init__(self):
         self.head = None
         self.tail = None
+        self.size = 0
 
-    # TAMBAH DATA DI AKHIR
-    def tambah_nilai(self, kode_mk, nama_mk, sks, grade):
-
-        baru = Node(kode_mk, nama_mk, sks, grade)
-
-        # jika list kosong
+    def tambah_nilai (self, mk, sks, grade, semester):
+        """Sisip di tail. Big-O: O(1) dengan pointer tail."""
+        baru = DLLNode(mk, sks, grade, semester)
         if self.head is None:
-            self.head = baru
-            self.tail = baru
-
+            self.head = self.tail = baru
         else:
             self.tail.next = baru
             baru.prev = self.tail
             self.tail = baru
 
-    # HAPUS DATA TERAKHIR
-    def hapus_terakhir(self):
-
-        if self.head is None:
-            print("Data kosong")
+        self.size += 1
+    def hapus_terakhir (self):
+        """Hapus dari tail (undo input) dengan pointer tail."""
+        if self.tail is None:
             return
+        self.size -= 1
 
-        # jika hanya 1 data
         if self.head == self.tail:
-            self.head = None
-            self.tail = None
-
+            self.head = self.tail = None
         else:
             self.tail = self.tail.prev
             self.tail.next = None
-
-    # TAMPILKAN MAJU
-    def tampil_maju(self):
-
-        if self.head is None:
-            print("Data kosong")
-            return
-
-        temp = self.head
-
-        print("\nTRANSAKSI NILAI (MAJU)")
-        print("========================")
-
-        while temp:
-            print(f"{temp.kode_mk} | {temp.nama_mk} | {temp.sks} SKS | Grade {temp.grade}")
-            temp = temp.next
-
-    # TAMPILKAN MUNDUR
-    def tampil_mundur(self):
-
-        if self.tail is None:
-            print("Data kosong")
-            return
-
-        temp = self.tail
-
-        print("\nTRANSAKSI NILAI (MUNDUR)")
-        print("========================")
-
-        while temp:
-            print(f"{temp.kode_mk} | {temp.nama_mk} | {temp.sks} SKS | Grade {temp.grade}")
-            temp = temp.prev
-
-    # HITUNG IPK
-    def hitung_ipk(self):
-
-        bobot = {
-            'A': 4,
-            'B+': 3.5,
-            'B': 3,
-            'C+': 2.5,
-            'C': 2,
-            'D': 1,
-            'E': 0
-        }
-
-        total_nilai = 0
+    def tampilkan_transkrip(self):
+        """Tampilkan semua nilai dari head ke tail."""
+        current = self.head
+        while current is not None:
+            print(f"MK: {current.mk}, SKS: {current.sks}, Grade: {current.grade}, Semester: {current.semester}")
+            current = current.next
+    def semester_ke (self, sem):
+        """Filter nilai semester tertentu. Big-O: O(n) karena harus cek semua node."""
+        current = self.head
+        while current:
+            if current.semester == sem:
+                print(
+                    current.mk,
+                    current.grade
+                    )
+            current = current.next
+    def hitung_ipk (self):
+        """Hitung IPK dari semua nilai. Big-O: O(n)."""
+        current = self.head
+        total_bobot = 0
         total_sks = 0
 
-        temp = self.head
+        Konfersi = {
+            'A': 4.0,
+            'A-': 3.7,
+            'B+': 3.3,
+            'B': 3.0,
+            'B-': 2.7,
+            'C+': 2.3,
+            'C': 2.0,
+            'D': 1.0,
+            'E': 0.0
+        }
+        while current:
+            bobot = Konfersi.get(current.grade, 0)
+            total_bobot += bobot * current.sks
+            total_sks += current.sks
 
-        while temp:
-            total_nilai += bobot[temp.grade] * temp.sks
-            total_sks += temp.sks
-            temp = temp.next
+            current = current.next
 
         if total_sks == 0:
             return 0
-
-        return round(total_nilai / total_sks, 2)
-
-
-# =========================
-# PROGRAM UTAMA
-# =========================
-
-dll = DoublyLinkedList()
-
-# tambah data
-dll.tambah_nilai("IF101", "Algoritma", 3, "A")
-dll.tambah_nilai("IF102", "Struktur Data", 3, "B+")
-dll.tambah_nilai("IF103", "Basis Data", 2, "B")
-
-# tampil maju
-dll.tampil_maju()
-
-# tampil mundur
-dll.tampil_mundur()
-
-# hitung IPK
-print("\nIPK :", dll.hitung_ipk())
-
-# hapus data terakhir
-dll.hapus_terakhir()
-
-# tampil setelah dihapus
-print("\nSETELAH HAPUS DATA TERAKHIR")
-dll.tampil_maju()
+        return round(total_bobot / total_sks, 2)
