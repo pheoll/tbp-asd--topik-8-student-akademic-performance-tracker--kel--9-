@@ -198,3 +198,55 @@ if __name__ == "__main__":
 
     print("\n=== HAPUS TERAKHIR ===")
     transkrip.hapus_terakhir()
+
+    # ==========================
+    # LEN
+    # ==========================
+
+    def __len__(self):
+        return self.size
+
+
+# ==========================
+# TESTING
+# ==========================
+
+if __name__ == "__main__":
+
+    transkrip = TranskripNilai()
+
+    transkrip.tambah_nilai(
+        "ELT101",
+        3,
+        "A",
+        1
+    )
+
+    transkrip.tambah_nilai(
+        "INF202",
+        4,
+        "B+",
+        2
+    )
+
+    transkrip.tambah_nilai(
+        "MAT101",
+        2,
+        "B",
+        1
+    )
+
+    print("=== TRANSKRIP ===")
+    transkrip.tampilkan_transkrip()
+
+    print("\n=== SEMESTER 1 ===")
+    transkrip.semester_ke(1)
+
+    print("\n=== IPK ===")
+    print(transkrip.hitung_ipk())
+
+    print("\n=== JUMLAH NODE ===")
+    print(len(transkrip))
+
+    print("\n=== HAPUS TERAKHIR ===")
+    transkrip.hapus_terakhir()
