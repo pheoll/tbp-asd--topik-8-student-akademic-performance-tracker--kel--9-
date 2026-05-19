@@ -88,4 +88,5 @@ class TranskripNilai:
 
         if total_sks == 0:
             return 0
+        
         return round(total_bobot / total_sks, 2)
