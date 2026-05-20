@@ -1,167 +1,191 @@
 from dataclasses import dataclass
 from typing import Optional
 
-# =========================
-# DOUBLE LINKED LIST NILAI
-# =========================
 
 @dataclass
-class NodeNilai:
-    kode_mk: str
-    nama_mk: str
-    sks: int
-    grade: str
-    prev: Optional['NodeNilai'] = None
-    next: Optional['NodeNilai'] = None
+class Mahasiswa:
+    nim: str
+    nama: str
+    prodi: str
+    angkatan: int
+    status: int = 0
+    ipk: float = 0.0
 
 
-class DoublyLinkedListNilai:
-    def __init__(self):
-        self.head = None
-        self.tail = None
+class BSTNodeMhs:
+    """Node BST yang menyimpan objek Mahasiswa + referensi ke DLL transkripsinya."""
 
-    # tambah nilai
-    def tambah_nilai(self, kode_mk, nama_mk, sks, grade):
-        baru = NodeNilai(kode_mk, nama_mk, sks, grade)
-
-        if self.head is None:
-            self.head = self.tail = baru
-        else:
-            self.tail.next = baru
-            baru.prev = self.tail
-            self.tail = baru
-
-    # tampilkan transkrip
-    def tampilkan(self):
-        temp = self.head
-
-        while temp:
-            print(f"{temp.kode_mk} | {temp.nama_mk} | {temp.sks} SKS | Grade {temp.grade}")
-            temp = temp.next
-
-    # hitung IPK
-    def hitung_ipk(self):
-        bobot = {
-            'A': 4,
-            'B+': 3.5,
-            'B': 3,
-            'C+': 2.5,
-            'C': 2,
-            'D': 1,
-            'E': 0
-        }
-
-        total_nilai = 0
-        total_sks = 0
-
-        temp = self.head
-
-        while temp:
-            total_nilai += bobot[temp.grade] * temp.sks
-            total_sks += temp.sks
-            temp = temp.next
-
-        if total_sks == 0:
-            return 0
-
-        return round(total_nilai / total_sks, 2)
-
-
-# =========================
-# NODE BST MAHASISWA
-# =========================
-
-class NodeMahasiswa:
-    def __init__(self, nim, nama):
-        self.nim = nim
-        self.nama = nama
-        self.transkrip = DoublyLinkedListNilai()
+    def __init__(self, mhs: Mahasiswa):
+        self.mhs = mhs
+        # Import di sini untuk menghindari circular import
+        from doubly_linked_list import TranskripNilai
+        self.transkripsi = TranskripNilai()
         self.left = None
         self.right = None
 
 
-# =========================
-# BST MAHASISWA
-# =========================
-
 class BSTMahasiswa:
+    """
+    Binary Search Tree dengan kunci = NIM mahasiswa (string).
+
+    Properti BST:
+        - node.left.mhs.nim  < node.mhs.nim  (semua di subtree kiri lebih kecil)
+        - node.right.mhs.nim > node.mhs.nim  (semua di subtree kanan lebih besar)
+
+    Big-O rata-rata (BST seimbang, h = log n):
+        insert  : O(log n)
+        search  : O(log n)
+        delete  : O(log n)
+        inorder : O(n)
+
+    Big-O worst-case (BST miring/degenerate, NIM dimasukkan berurutan):
+        semua operasi : O(n)  — BST menjadi linked list linear
+
+    Catatan: gunakan pre-shuffle data sebelum insert untuk menghindari worst-case.
+    """
+
     def __init__(self):
         self.root = None
 
-    # INSERT MAHASISWA
-    def insert(self, root, nim, nama):
-        if root is None:
-            return NodeMahasiswa(nim, nama)
+    # ------------------------------------------------------------------ #
+    #  INSERT                                                              #
+    # ------------------------------------------------------------------ #
 
-        if nim < root.nim:
-            root.left = self.insert(root.left, nim, nama)
+    def insert(self, mhs: Mahasiswa):
+        """
+        Sisipkan mahasiswa baru ke BST berdasarkan NIM.
 
-        elif nim > root.nim:
-            root.right = self.insert(root.right, nim, nama)
+        Big-O Waktu : O(log n) rata-rata, O(n) worst-case (BST miring)
+        Big-O Ruang : O(log n) stack rekursi rata-rata, O(n) worst-case
 
-        return root
+        Args:
+            mhs: objek Mahasiswa yang akan disisipkan
+        """
+        self.root = self._insert_rekursif(self.root, mhs)
 
-    # SEARCH MAHASISWA
-    def search(self, root, nim):
-        if root is None or root.nim == nim:
-            return root
+    def _insert_rekursif(self, node: Optional[BSTNodeMhs], mhs: Mahasiswa) -> BSTNodeMhs:
+        """Helper rekursif untuk insert."""
+        if node is None:
+            # Posisi kosong ditemukan, buat node baru
+            return BSTNodeMhs(mhs)
 
-        if nim < root.nim:
-            return self.search(root.left, nim)
+        if mhs.nim < node.mhs.nim:
+            # NIM lebih kecil, masuk ke subtree kiri
+            node.left = self._insert_rekursif(node.left, mhs)
+        elif mhs.nim > node.mhs.nim:
+            # NIM lebih besar, masuk ke subtree kanan
+            node.right = self._insert_rekursif(node.right, mhs)
+        # Jika NIM sama, tidak dimasukkan (NIM unik)
+
+        return node
+
+    # ------------------------------------------------------------------ #
+    #  SEARCH                                                              #
+    # ------------------------------------------------------------------ #
+
+    def search(self, nim: str) -> Optional[BSTNodeMhs]:
+        """
+        Cari node BST berdasarkan NIM.
+
+        Big-O Waktu : O(log n) rata-rata, O(n) worst-case
+        Big-O Ruang : O(log n) stack rekursi rata-rata
+
+        Args:
+            nim: NIM mahasiswa yang dicari
+
+        Return:
+            BSTNodeMhs jika ditemukan, None jika tidak ada
+        """
+        return self._search_rekursif(self.root, nim)
+
+    def _search_rekursif(self, node: Optional[BSTNodeMhs], nim: str) -> Optional[BSTNodeMhs]:
+        """Helper rekursif untuk search."""
+        if node is None:
+            # Tidak ditemukan
+            return None
+
+        if nim == node.mhs.nim:
+            # NIM cocok, kembalikan node ini
+            return node
+        elif nim < node.mhs.nim:
+            # NIM lebih kecil, cari di subtree kiri
+            return self._search_rekursif(node.left, nim)
         else:
-            return self.search(root.right, nim)
+            # NIM lebih besar, cari di subtree kanan
+            return self._search_rekursif(node.right, nim)
 
-    # INORDER
-    def inorder(self, root):
-        if root:
-            self.inorder(root.left)
+    # ------------------------------------------------------------------ #
+    #  UPDATE IPK                                                          #
+    # ------------------------------------------------------------------ #
 
-            print("========================")
-            print(f"NIM  : {root.nim}")
-            print(f"Nama : {root.nama}")
-            print(f"IPK  : {root.transkrip.hitung_ipk()}")
-            print("Transkrip:")
-            root.transkrip.tampilkan()
+    def update_ipk(self, nim: str):
+        """
+        Cari node mahasiswa, lalu hitung ulang IPK dari DLL transkripsinya.
 
-            self.inorder(root.right)
+        Big-O Waktu : O(log n) untuk search + O(m) untuk hitung_ipk
+                      di mana m = jumlah matakuliah mahasiswa tersebut
+        Big-O Ruang : O(log n) stack rekursi
 
+        Args:
+            nim: NIM mahasiswa yang IPK-nya akan diperbarui
+        """
+        node = self.search(nim)
+        if node is not None:
+            # Hitung ulang IPK dari seluruh node DLL transkripsi
+            node.mhs.ipk = node.transkripsi.hitung_ipk()
 
-# =========================
-# PROGRAM UTAMA
-# =========================
+    # ------------------------------------------------------------------ #
+    #  INORDER TRAVERSAL                                                   #
+    # ------------------------------------------------------------------ #
 
-bst = BSTMahasiswa()
+    def inorder(self):
+        """
+        Kembalikan list objek Mahasiswa dalam urutan NIM ascending (inorder traversal).
+        Inorder BST selalu menghasilkan urutan terurut karena properti BST.
 
-# tambah mahasiswa
-bst.root = bst.insert(bst.root, 98, "Aflah")
-bst.root = bst.insert(bst.root, 75, "Budi")
-bst.root = bst.insert(bst.root, 120, "Citra")
+        Big-O Waktu : O(n) — setiap node dikunjungi tepat sekali
+        Big-O Ruang : O(n) untuk list hasil + O(h) stack rekursi
 
-# tambah nilai mahasiswa
-mhs1 = bst.search(bst.root, 98)
-mhs1.transkrip.tambah_nilai("IF101", "Algoritma", 3, "A")
-mhs1.transkrip.tambah_nilai("IF102", "Struktur Data", 3, "B+")
+        Return:
+            list Mahasiswa terurut berdasarkan NIM
+        """
+        hasil = []
+        self._inorder_rekursif(self.root, hasil)
+        return hasil
 
-mhs2 = bst.search(bst.root, 75)
-mhs2.transkrip.tambah_nilai("IF201", "Basis Data", 2, "B")
-mhs2.transkrip.tambah_nilai("IF202", "Python", 3, "A")
+    def _inorder_rekursif(self, node: Optional[BSTNodeMhs], hasil: list):
+        """Helper rekursif inorder: kiri -> root -> kanan."""
+        if node is None:
+            return
+        self._inorder_rekursif(node.left, hasil)
+        hasil.append(node.mhs)
+        self._inorder_rekursif(node.right, hasil)
 
-mhs3 = bst.search(bst.root, 120)
-mhs3.transkrip.tambah_nilai("IF301", "AI", 3, "A")
+    # ------------------------------------------------------------------ #
+    #  RANGE IPK                                                           #
+    # ------------------------------------------------------------------ #
 
-# tampilkan semua data
-print("\nDATA MAHASISWA")
-print("========================")
-bst.inorder(bst.root)
+    def range_ipk(self, low: float, high: float):
+        """
+        Kembalikan list mahasiswa yang IPK-nya berada dalam rentang [low, high].
 
-# pencarian mahasiswa
-print("\nPENCARIAN MAHASISWA")
-print("========================")
+        Catatan Big-O:
+            BST diindeks berdasarkan NIM, bukan IPK. Oleh karena itu tidak bisa
+            memanfaatkan properti BST untuk memangkas pencarian berdasarkan IPK.
+            Seluruh tree harus ditelusuri (inorder traversal + filter).
 
-cari = bst.search(bst.root, 98)
+        Big-O Waktu : O(n) — inorder traversal penuh lalu filter IPK
+        Big-O Ruang : O(n) untuk list hasil + O(h) stack rekursi
 
-if cari:
-    print(f"Data ditemukan: {cari.nama}")
-    print(f"IPK : {cari.transkrip.hitung_ipk()}")
-else:
-    print("Data tidak ditemukan")
+        Optimasi lanjutan (lihat Pertanyaan Analisis no.2):
+            Gunakan secondary BST dengan kunci IPK untuk O(log n + k).
+
+        Args:
+            low  : batas bawah IPK (inklusif)
+            high : batas atas IPK (inklusif)
+
+        Return:
+            list Mahasiswa dengan IPK dalam [low, high]
+        """
+        semua = self.inorder()
+        return [mhs for mhs in semua if low <= mhs.ipk <= high]

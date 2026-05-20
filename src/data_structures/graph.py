@@ -1,90 +1,195 @@
-# =========================
-# GRAPH PRASYARAT MATA KULIAH
-# =========================
+from collections import deque
 
-class Graph:
+
+class GraphPrereq:
+    """
+    Directed Acyclic Graph (DAG) untuk memodelkan prasyarat matakuliah.
+
+    Representasi: Adjacency List
+        self.adj  : dict { kode_mk -> list[kode_prasyarat] }
+                    edge A -> B berarti A adalah prasyarat B
+                    (untuk mengetahui prasyarat suatu MK, lihat self.adj[kode_mk])
+        self.matkul: dict { kode_mk -> nama_mk }
+
+    Pemilihan Adjacency List vs Adjacency Matrix:
+        - Adjacency List  : O(V+E) ruang — efisien untuk sparse graph (E << V²)
+        - Adjacency Matrix: O(V²) ruang  — boros untuk kurikulum 40 MK, 55 relasi
+        Kurikulum ini sparse (55 edge dari maks 40*39=1560), sehingga adj list dipilih.
+
+    Big-O ringkasan:
+        tambah_matkul     : O(1)
+        tambah_prasyarat  : O(1)
+        topological_sort  : O(V+E)
+        prasyarat_terpenuhi: O(deg(v)) di mana deg = jumlah prasyarat MK tersebut
+    """
 
     def __init__(self):
-        self.graph = {}
+        # kode_mk -> list kode prasyaratnya
+        self.adj = {}
+        # kode_mk -> nama lengkap matakuliah
+        self.matkul = {}
 
-    # TAMBAH MATA KULIAH
-    def tambah_matkul(self, matkul):
+    # ------------------------------------------------------------------ #
+    #  TAMBAH MATAKULIAH                                                   #
+    # ------------------------------------------------------------------ #
 
-        if matkul not in self.graph:
-            self.graph[matkul] = []
+    def tambah_matkul(self, kode: str, nama: str):
+        """
+        Daftarkan matakuliah baru ke graph.
 
-    # TAMBAH PRASYARAT
-    def tambah_prasyarat(self, matkul, prasyarat):
+        Big-O Waktu : O(1) — insert ke dict
+        Big-O Ruang : O(1) — satu entry baru di adj dan matkul
 
-        self.tambah_matkul(matkul)
-        self.tambah_matkul(prasyarat)
+        Args:
+            kode: kode unik matakuliah (contoh: 'ELT101')
+            nama: nama lengkap matakuliah
+        """
+        if kode not in self.adj:
+            self.adj[kode] = []
+        self.matkul[kode] = nama
 
-        self.graph[prasyarat].append(matkul)
+    # ------------------------------------------------------------------ #
+    #  TAMBAH PRASYARAT                                                    #
+    # ------------------------------------------------------------------ #
 
-    # TAMPILKAN GRAPH
-    def tampilkan_graph(self):
+    def tambah_prasyarat(self, kode_mk: str, kode_prasyarat: str):
+        """
+        Tambahkan relasi prasyarat: kode_prasyarat harus lulus sebelum kode_mk.
+        Dalam representasi adj list: self.adj[kode_mk] menyimpan daftar prasyaratnya.
 
-        print("GRAPH PRASYARAT MATA KULIAH")
-        print("============================")
+        Big-O Waktu : O(1) — append ke list adjacency
+        Big-O Ruang : O(1) — satu entry baru di list
 
-        for matkul in self.graph:
-            print(matkul, "->", self.graph[matkul])
+        Args:
+            kode_mk        : matakuliah yang memiliki prasyarat
+            kode_prasyarat : matakuliah yang harus lulus terlebih dahulu
+        """
+        # Pastikan kedua kode terdaftar di graph
+        if kode_mk not in self.adj:
+            self.adj[kode_mk] = []
+        if kode_prasyarat not in self.adj:
+            self.adj[kode_prasyarat] = []
 
-    # DFS
-    def dfs(self, start, visited=None):
+        # Tambahkan prasyarat ke daftar prasyarat kode_mk
+        if kode_prasyarat not in self.adj[kode_mk]:
+            self.adj[kode_mk].append(kode_prasyarat)
 
-        if visited is None:
-            visited = set()
+    # ------------------------------------------------------------------ #
+    #  TOPOLOGICAL SORT (Kahn's Algorithm)                                 #
+    # ------------------------------------------------------------------ #
 
-        visited.add(start)
+    def topological_sort(self):
+        """
+        Hasilkan urutan pengambilan matakuliah yang valid menggunakan Kahn's Algorithm.
 
-        print(start, end=" ")
+        Kahn's Algorithm (BFS-based):
+            1. Hitung in-degree setiap node (berapa MK lain yang membutuhkan node ini
+               sebagai prasyarat — bukan berapa prasyarat yang dimiliki node ini).
+            2. Masukkan semua node dengan in-degree = 0 ke queue (bisa langsung diambil).
+            3. Selama queue tidak kosong:
+               a. Dequeue satu MK, tambahkan ke hasil urutan.
+               b. Untuk setiap MK lain yang memiliki MK ini sebagai prasyarat,
+                  kurangi in-degree-nya. Jika in-degree menjadi 0, enqueue.
+            4. Jika panjang hasil == jumlah node: tidak ada siklus (valid DAG).
+               Jika hasil < jumlah node: ada siklus (tidak semua node bisa diproses).
 
-        for tetangga in self.graph[start]:
-            if tetangga not in visited:
-                self.dfs(tetangga, visited)
+        Big-O Waktu : O(V+E) — setiap vertex dan edge diproses tepat sekali
+        Big-O Ruang : O(V+E) — in_degree dict + reverse_adj + queue + hasil
 
-    # BFS
-    def bfs(self, start):
+        Return:
+            list kode_mk dalam urutan topologis yang valid,
+            atau list kosong jika terdeteksi siklus (DAG tidak valid)
+        """
+        # Langkah 1: Bangun reverse adjacency list
+        # reverse_adj[A] = list MK yang memerlukan A sebagai prasyarat
+        # (arah edge dibalik: prasyarat -> MK yang membutuhkan)
+        in_degree = {kode: 0 for kode in self.adj}
+        reverse_adj = {kode: [] for kode in self.adj}
 
-        visited = []
-        queue = []
+        for mk, prasyarat_list in self.adj.items():
+            for p in prasyarat_list:
+                # mk membutuhkan p, jadi in-degree mk bertambah
+                in_degree[mk] += 1
+                # p mengarah ke mk dalam reverse graph
+                if p in reverse_adj:
+                    reverse_adj[p].append(mk)
 
-        visited.append(start)
-        queue.append(start)
+        # Langkah 2: Masukkan semua MK tanpa prasyarat ke queue
+        queue = deque()
+        for kode, deg in in_degree.items():
+            if deg == 0:
+                queue.append(kode)
 
+        hasil = []
+
+        # Langkah 3: Proses BFS
         while queue:
+            mk = queue.popleft()
+            hasil.append(mk)
 
-            s = queue.pop(0)
-            print(s, end=" ")
+            # Kurangi in-degree MK yang membutuhkan mk ini sebagai prasyarat
+            for mk_berikut in reverse_adj[mk]:
+                in_degree[mk_berikut] -= 1
+                if in_degree[mk_berikut] == 0:
+                    queue.append(mk_berikut)
 
-            for tetangga in self.graph[s]:
-                if tetangga not in visited:
-                    visited.append(tetangga)
-                    queue.append(tetangga)
+        # Langkah 4: Deteksi siklus
+        # Jika ada siklus, beberapa node tidak pernah mencapai in-degree 0
+        # sehingga tidak masuk ke hasil
+        if len(hasil) != len(self.adj):
+            # Siklus terdeteksi — kembalikan list kosong sebagai tanda error
+            return []
 
+        return hasil
 
-# =========================
-# PROGRAM UTAMA
-# =========================
+    # ------------------------------------------------------------------ #
+    #  CEK PRASYARAT TERPENUHI                                             #
+    # ------------------------------------------------------------------ #
 
-g = Graph()
+    def prasyarat_terpenuhi(self, nim_node, kode_mk: str) -> bool:
+        """
+        Cek apakah semua prasyarat untuk kode_mk sudah lulus oleh mahasiswa.
+        Syarat lulus: grade >= C (grade value >= 2.0).
 
-# tambah relasi prasyarat
-g.tambah_prasyarat("Struktur Data", "Algoritma")
-g.tambah_prasyarat("Basis Data", "Struktur Data")
-g.tambah_prasyarat("AI", "Basis Data")
-g.tambah_prasyarat("Machine Learning", "AI")
+        Big-O Waktu : O(deg(kode_mk) * m) di mana:
+                        deg = jumlah prasyarat kode_mk
+                        m   = jumlah matakuliah dalam transkripsi mahasiswa
+                      Dalam praktik ≈ O(deg) karena m kecil dan konstan per mahasiswa
+        Big-O Ruang : O(m) untuk list semua nilai mahasiswa
 
-# tampil graph
-g.tampilkan_graph()
+        Args:
+            nim_node : BSTNodeMhs — node BST mahasiswa yang akan diperiksa
+            kode_mk  : kode matakuliah yang ingin diambil
 
-# DFS
-print("\nDFS Traversal")
-print("================")
-g.dfs("Algoritma")
+        Return:
+            True jika semua prasyarat sudah lulus atau tidak ada prasyarat,
+            False jika ada prasyarat yang belum lulus atau belum diambil
+        """
+        from doubly_linked_list import GRADE_MAP
 
-# BFS
-print("\n\nBFS Traversal")
-print("================")
-g.bfs("Algoritma")
+        if kode_mk not in self.adj:
+            # MK tidak terdaftar di graph, anggap tidak ada prasyarat
+            return True
+
+        prasyarat_list = self.adj[kode_mk]
+
+        if not prasyarat_list:
+            # MK tidak memiliki prasyarat
+            return True
+
+        # Ambil semua nilai mahasiswa dari DLL transkripsi
+        semua_nilai = nim_node.transkripsi.semua_nilai()
+
+        # Buat dict { kode_mk: grade } untuk pencarian O(1) per prasyarat
+        nilai_dict = {n.kode_mk: n.grade for n in semua_nilai}
+
+        for p in prasyarat_list:
+            if p not in nilai_dict:
+                # Prasyarat belum pernah diambil
+                return False
+            grade_val = GRADE_MAP.get(nilai_dict[p], 0.0)
+            if grade_val < 2.0:
+                # Prasyarat diambil tapi nilainya di bawah C (tidak lulus)
+                return False
+
+        return True
