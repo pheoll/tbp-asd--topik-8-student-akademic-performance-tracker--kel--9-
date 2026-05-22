@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -19,10 +20,10 @@ GRADE_MAP = {
 class DLLNode:
     """Node Doubly Linked List."""
 
-    def __init__(self, data=None):
-        self.data = data
-        self.prev = None
-        self.next = None
+    def __init__(self, data: Optional[NilaiMatkul] = None):
+        self.data: Optional[NilaiMatkul] = data
+        self.prev: Optional['DLLNode'] = None
+        self.next: Optional['DLLNode'] = None
 
 
 class TranskripNilai:
@@ -86,7 +87,8 @@ class TranskripNilai:
         else:
             # Geser tail ke node sebelumnya, putus link ke node lama
             self.tail = self.tail.prev
-            self.tail.next = None
+            if self.tail is not None:
+                self.tail.next = None
 
         self._size -= 1
         return data
@@ -108,7 +110,7 @@ class TranskripNilai:
         hasil = []
         current = self.head
         while current is not None:
-            if current.data.semester == sem:
+            if current.data is not None and current.data.semester == sem:
                 hasil.append(current.data)
             current = current.next
         return hasil
@@ -129,9 +131,10 @@ class TranskripNilai:
         total_sks = 0
         current = self.head
         while current is not None:
-            grade_val = GRADE_MAP.get(current.data.grade, 0.0)
-            total_bobot += grade_val * current.data.sks
-            total_sks += current.data.sks
+            if current.data is not None:
+                grade_val = GRADE_MAP.get(current.data.grade, 0.0)
+                total_bobot += grade_val * current.data.sks
+                total_sks += current.data.sks
             current = current.next
 
         if total_sks == 0:

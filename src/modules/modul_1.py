@@ -12,12 +12,7 @@ Fungsi utama:
     - hitung_ipk       : hitung dan perbarui IPK mahasiswa dari DLL (O(n))
 """
  
-import sys
-import os
- 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'data_structures'))
- 
-import doubly_linked_list
+from doubly_linked_list import NilaiMatkul, GRADE_MAP
  
  
 # ------------------------------------------------------------------ #
@@ -46,9 +41,9 @@ def input_nilai(bst_node, kode_mk: str, nama_mk: str, sks: int,
         True jika berhasil, False jika grade tidak valid
     """
     # Validasi grade
-    if grade not in doubly_linked_list.GRADE_MAP:
+    if grade not in GRADE_MAP:
         print(f"[ERROR] Grade '{grade}' tidak valid. "
-              f"Pilihan: {', '.join(doubly_linked_list.GRADE_MAP.keys())}")
+              f"Pilihan: {', '.join(GRADE_MAP.keys())}")
         return False
  
     # Validasi semester
@@ -56,7 +51,7 @@ def input_nilai(bst_node, kode_mk: str, nama_mk: str, sks: int,
         print(f"[ERROR] Semester '{semester}' tidak valid. Harus antara 1–8.")
         return False
  
-    nilai = doubly_linked_list.NilaiMatkul(
+    nilai = NilaiMatkul(
         kode_mk=kode_mk,
         nama_mk=nama_mk,
         sks=sks,
@@ -145,14 +140,14 @@ def lihat_transkripsi(bst_node) -> None:
         print(f"  {'Kode':<10} {'Nama MK':<30} {'SKS':>4} {'Grade':>6} {'Bobot':>7}")
         print(f"  {'-'*60}")
         for n in per_semester[sem]:
-            bobot = doubly_linked_list.GRADE_MAP.get(n.grade, 0.0) * n.sks
+            bobot = GRADE_MAP.get(n.grade, 0.0) * n.sks
             total_bobot += bobot
             total_sks += n.sks
             print(f"  {n.kode_mk:<10} {n.nama_mk:<30} {n.sks:>4} {n.grade:>6} {bobot:>7.2f}")
  
     ips_per_sem = {}
     for sem, nilai_list in per_semester.items():
-        b = sum(doubly_linked_list.GRADE_MAP.get(n.grade, 0.0) * n.sks for n in nilai_list)
+        b = sum(GRADE_MAP.get(n.grade, 0.0) * n.sks for n in nilai_list)
         s = sum(n.sks for n in nilai_list)
         ips_per_sem[sem] = b / s if s > 0 else 0.0
  
@@ -196,7 +191,7 @@ def filter_semester(bst_node, semester: int) -> None:
     total_sks = 0
     total_bobot = 0.0
     for n in nilai_list:
-        bobot = doubly_linked_list.GRADE_MAP.get(n.grade, 0.0) * n.sks
+        bobot = GRADE_MAP.get(n.grade, 0.0) * n.sks
         total_bobot += bobot
         total_sks += n.sks
         print(f"  {n.kode_mk:<10} {n.nama_mk:<30} {n.sks:>4} {n.grade:>6}")

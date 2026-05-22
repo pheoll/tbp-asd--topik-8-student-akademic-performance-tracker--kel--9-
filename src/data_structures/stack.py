@@ -3,7 +3,7 @@ class LLNode:
 
     def __init__(self, data=None):
         self.data = data
-        self.next = None
+        self.next: "LLNode | None" = None
 
 
 class Stack:

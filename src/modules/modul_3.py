@@ -20,8 +20,8 @@ Fungsi utama:
  
 import sys
 import os
- 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'data_structures'))
+# Tambahkan src/data_structures/ ke path relatif terhadap lokasi FILE INI
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data_structures'))
  
 from stack import Stack
 from doubly_linked_list import GRADE_MAP
@@ -149,10 +149,11 @@ def lihat_riwayat(undo_stack: Stack) -> None:
     urutan = 1
     while current is not None:
         op = current.data
-        nim   = op['nim']
-        nilai = op['nilai']
-        print(f"  {urutan:>4} {nim:<14} {nilai.kode_mk:<10} "
-              f"{nilai.grade:>6} {nilai.sks:>4} {nilai.semester:>4}")
+        if op is not None:
+            nim   = op['nim']
+            nilai = op['nilai']
+            print(f"  {urutan:>4} {nim:<14} {nilai.kode_mk:<10} "
+                  f"{nilai.grade:>6} {nilai.sks:>4} {nilai.semester:>4}")
         current = current.next
         urutan += 1
  
